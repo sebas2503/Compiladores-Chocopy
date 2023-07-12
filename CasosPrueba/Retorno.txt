@@ -1,0 +1,11 @@
+Funciones que deben tener errores:
+Funcion def
+Funcion TypedVar
+Funcion Type
+Funcion TypedVarList
+Funcion TypedVarListTail
+Funcion Return
+Funcion Block
+Funcion Statement
+Funcion Elif
+Funcion

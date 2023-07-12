@@ -1,0 +1,17 @@
+def
+def foo (x : int , y : int) - int : 
+    if x**y < y or x==y: 
+        a=b
+        return a
+    elif x != y:
+        return y//
+    else:
+        return x*y
+print @
+while (a > b and ==c):
+    a = a * 1 + 1
+y = 1 
+for x in [1,2,3]:
+    y = y * x
+r = foo ( a, b) 
+s = True if (a == b) else False

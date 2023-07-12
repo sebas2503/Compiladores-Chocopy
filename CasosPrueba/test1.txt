@@ -1,0 +1,8 @@
+def foo( x : int , y: int) -> int : 
+        if x < y: 
+                return x+1
+        elif x > y:
+                return True
+        else:
+                return 0
+

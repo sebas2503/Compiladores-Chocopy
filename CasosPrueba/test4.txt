@@ -1,0 +1,7 @@
+while (a > b and  ==c):
+    a = a * 1
+y = 1 
+for x in [1,2,3]:
+    y = y * x
+r = foo ( a, b) 
+s = True if (a == b) else False
