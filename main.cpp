@@ -37,6 +37,8 @@ private:
     vector<Error> listaerrores;
     bool deteccionError;
     void AgregarError(string,int);
+    void SaltarError();
+    void sincronizar(vector<string> tokensEsperados);
     void Imprimir2();
     void match(string);
     //---Funciones/Produccines---
@@ -98,6 +100,12 @@ bool Parser::Init()
             return 1;
     }
     cout<<"pos: "<<pos<<endl;
+    /*if(listaerrores.size() != 0)
+        if(listaerrores[listaerrores.size()-1].msj == "Error de DEDENT" || listaerrores[listaerrores.size()-1].msj == "Error de INDENT ")
+        {
+            listaerrores.pop_back();
+            return 1;
+        }*/
     return 0;
 }
 void Parser::AgregarError(string error, int pos2)
@@ -105,40 +113,39 @@ void Parser::AgregarError(string error, int pos2)
     class Error aux(error,pos2);
     deteccionError = true;
     listaerrores.push_back(aux);
+    
+}
+void Parser::SaltarError()
+{
     while(token.first != "NEWLINE" && tok[pos+1].first != "$")
     {
-        //cout<<"Antes del salto en la pos "<<pos<<endl;
-        //cout<<token.first<<" "<<token.second<<endl;
         token = nextToken();
-        //cout<<"Despues del salto en la pos "<<pos<<endl;
-        //cout<<token.first<<" "<<token.second<<endl;
         if(token.first == "NEWLINE")
         {
             pos = pos - 1;
             token = tok[pos]; //Hacer un retroceso.
-            //cout<<"Encontre un newline: "<<token.first<<" "<<token.second<<endl;
             break;
         }
         if(token.first == "$")
             break;
     }
-    
+}
+void Parser::sincronizar(vector<string> tokensEsperados)
+{
+    while (pos < tok.size())
+    {
+        if (find(tokensEsperados.begin(), tokensEsperados.end(), tok[pos].second) != tokensEsperados.end())
+            return;
+        pos++;
+    }
 }
 pair<string, string> Parser::nextToken()
 {
-    /*pos = pos + 1;
-    if(pos > tok.size()-1)
-    {
-        pos=pos-1;
-    }
-    return tok[pos];*/
     if(pos+1 < tok.size())
     {
         pos+=1;
     }
     return tok[pos];
-    //else
-      //  return tok[pos-1];
 }
 void Parser::Imprimir2()
 {
@@ -150,7 +157,7 @@ void Parser::Imprimir2()
 }
 void Parser::ImprimirErrores()
 {
-    if(listaerrores.size() != 0)
+   if(listaerrores.size() != 0)
     {
         if(listaerrores[listaerrores.size()-1].msj == "Error de DEDENT" || listaerrores[listaerrores.size()-1].msj == "Error de INDENT ")
             listaerrores.pop_back();
@@ -169,16 +176,42 @@ bool Parser::Program()
     return 0;
 
 }
-bool Parser::DefList()
+/*
+ Puntos a considerar
+ -Solo al final de cada produccion si encuentro un error irme hasta el newline. otherwise sigo normal
+ -Producciones que si son vacias
+     DefList
+     TypedVarList
+     TypedVarListTail
+     Return
+     StatementList
+     ElifList
+     SSTail
+     ReturnExpr
+     ExprPrime
+     orExprPrime
+     andExprPrime
+     notExprPrime
+     CompExprPrime
+     IntExprPrime
+     TermPrime
+     NameTail
+     ExprList
+     ExprListTail
+ */
+bool Parser::DefList() //Funcion con vacio
 {
-    if (Def())
+    if(token.second == "def") //First de Def
     {
+        Def();
         if(DefList())
             return 1;
     }
     //{$,if,while,for,pass,return,-,(,ID,None,True,False,INTEGER,STRING,[}
     if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[")
         return 1;
+    //Error
+    AgregarError("Error en la produccion DefList",pos);
     return 0;
 }
 bool Parser::Def()
@@ -202,53 +235,69 @@ bool Parser::Def()
                             if (token.second == ":")
                             {
                                 token = nextToken();
-                                if(Block())
+                                if(token.first == "NEWLINE")
+                                {
+                                    Block();
                                     return 1;
+                                }
                             }
                             else
                             {
                                 AgregarError("Error de : (Produccion Def) ", pos);
-                                token = nextToken();
-                                cout<<"token: "<<token.first<<" "<<token.second<<endl;
-                                if(Block())
-                                    return 1;
+                                SaltarError();
+                                if(token.first != "NEWLINE")
+                                    token = nextToken();
+                                Block();
+                                return 1;
                             }
                         }
                         else
                         {
-                            AgregarError("Error def incompleto se esperaba como follow un : ",pos);
-                            cout<<"token: "<<token.first<<" "<<token.second<<endl;
-                            if(Block())
-                                return 1;
+                            SaltarError();
+                            if(token.first != "NEWLINE")
+                                token = nextToken();
+                            Block();
+                            return 1;
                         }
                     }
                     else
                     {
                         AgregarError("Error de ) (Produccion Def) ", pos);
-                        token = nextToken();
-                        cout<<"token: "<<token.first<<" "<<token.second<<endl;
-                        if(Block())
-                            return 1;
+                        SaltarError();
+                        if(token.first != "NEWLINE")
+                            token = nextToken();
+                        Block();
+                        return 1;
                     }
+                }
+                else
+                {
+                    SaltarError();
+                    if(token.first != "NEWLINE")
+                        token = nextToken();
+                    Block();
+                    return 1;
                 }
             }
             else
             {
                 AgregarError("Error de ( (Produccion Def) ", pos);
-                token = nextToken();
-                cout<<"token: "<<token.first<<" "<<token.second<<endl;
-                if(Block())
-                    return 1;
+                SaltarError();
+                if(token.first != "NEWLINE")
+                    token = nextToken();
+                Block();
+                return 1;
             }
 
         }
         else
         {
             AgregarError("Error de ID (Produccion Def) ", pos);
-            token = nextToken();
-            cout<<"token: "<<token.first<<" "<<token.second<<endl;
-            if(Block())
-                return 1;
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            Block();
+            return 1;
         }
     }
     return 0;
@@ -261,13 +310,19 @@ bool Parser::TypedVar()
         if (token.second == ":")
         {
             token = nextToken();
-            if (Type())
+            if(token.second == "int" || token.second == "str" || token.second == "[") //Firsts de Type
+            {
+                Type();
                 return 1;
+            }
+            else
+            {
+                AgregarError("Error en la produccion TypedVar",pos);
+            }
         }
         else
         {
             AgregarError("Error de : (Produccion TypedVar) ",pos);
-            return 1;
         }
     }
     return 0;
@@ -287,8 +342,9 @@ bool Parser::Type()
     if (token.second == "[")
     {
         token = nextToken();
-        if (Type())
+        if (token.second == "int" || token.second == "str" || token.second == "[")
         {
+            Type();
             if (token.second == "]")
             {
                 token = nextToken();
@@ -297,50 +353,70 @@ bool Parser::Type()
             else
             {
                 AgregarError("Error de ] (Produccion Type) ",pos);
-                return 1;
+                //return 1;
             }
         }
+        else
+        {
+            AgregarError("Error en el contenido de los [ ] (Produccion Type)",pos);
+        }
     }
+    //Follows
+    if(token.second == "]" || token.second == "," || token.second == ")")
+        return 1;
+    //Error
+    //AgregarError("Error en la produccion Type",pos);
     return 0;
 }
-bool Parser::TypedVarList()
+bool Parser::TypedVarList() //Funcion con vacio
 {
-    if (TypedVar())
+    if (token.first == "ID") //First de TypedVar
     {
-        if (TypedVarListTail())
+        TypedVar();
+        if(TypedVarListTail())
             return 1;
+        else
+            return 0;
     }
     if (token.second == ")")
         return 1;
-    AgregarError("Se esperaba como follow un )", pos);
-    return 1;
+    AgregarError("Error en la produccion TypedVarList", pos);
+    return 0;
+    //return 1;
 }
-bool Parser::TypedVarListTail()
+bool Parser::TypedVarListTail() //Funcion con vacio
 {
     if (token.second == ",")
     {
         token = nextToken();
-        if (TypedVar())
+        if (token.first == "ID") //First TypedVar
         {
+            TypedVar();
             if(TypedVarListTail())
                 return 1;
         }
     }
     if (token.second == ")")
         return 1;
-    AgregarError("Se esperaba como follow un )",pos);
-    return 1;
+    //AgregarError("Error en la produccion TypedVarListTail",pos);
+    return 0;
+    //return 1;
 }
-bool Parser::Return()
+bool Parser::Return() //Funcion con vacio
 {
     if (token.second == "->")
     {
         token = nextToken();
-        if (Type())
+        if (token.second == "int" || token.second == "str" || token.second == "[") //First de type
+        {
+            Type();
             return 1;
+        }
     }
+    //Follow
     if (token.second == ":")
         return 1;
+    AgregarError("Error en la produccion Return",pos);
     return 0;
     //return 1;
 }
@@ -352,9 +428,14 @@ bool Parser::Block()
         if (token.first == "INDENT")
         {
             token = nextToken();
-            if (Statement())
+            if (token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Statement
             {
-                if (StatementList())
+                Statement();
+                /*if(token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[")
+                    {
+                        StatementList();
+                {*/
+                if(StatementList())
                 {
                     if (token.first == "DEDENT")
                     {
@@ -364,35 +445,45 @@ bool Parser::Block()
                     else
                     {
                         AgregarError("Error de DEDENT",pos);
-                        token = nextToken();
-                        return 1;
+                        //token = nextToken();
+                        //return 1;
                     }
                 }
                 else
                 {
                     AgregarError("Error de StatementList",pos);
-                    return 1;
+                    //return 1;
                 }
             }
             else
             {
                 AgregarError("Error de INDENT ",pos);
-                return 1;
+                //return 1;
             }
         }
     }
+    //Follows
+    /*if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "["|| token.second == "DEDENT" || token.second == "else" || token.second == "elif")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion Block",pos);
     return 0;
 }
-bool Parser::StatementList()
+bool Parser::StatementList() //Funcion con vacio
 {
-    if (Statement())
+    if (token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Statement
     {
+        Statement();
         if(StatementList())
+        {
             return 1;
+        }
     }
     //{$,DEDENT}
     if (token.second == "$" || token.first == "DEDENT")
         return 1;
+    //Colocar error
+    //AgregarError("Error en la produccion StatementList",pos);
     return 0;
 }
 bool Parser::Statement()
@@ -400,13 +491,15 @@ bool Parser::Statement()
     if (token.second == "if")
     {
         token = nextToken();
-        if (Expr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Expr)
         {
+            Expr();
             if (token.second == ":")
             {
                 token = nextToken();
-                if (Block())
+                if (token.first == "NEWLINE")
                 {
+                    Block();
                     if (ElifList())
                     {
                         if(Else())
@@ -417,31 +510,35 @@ bool Parser::Statement()
             else
             {
                 AgregarError("Error de : (Produccion Statement)-if ",pos);
-                token = nextToken();
+                /*token = nextToken();
                 cout<<"token: "<<token.first<<" "<<token.second<<endl;
                 if(Block())
-                    return 1;
+                    return 1;*/
             }
         }
     }
     if(token.second == "while")
     {
         token = nextToken();
-        if(Expr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Expr
         {
+            Expr();
             if(token.second == ":")
             {
                 token = nextToken();
-                if(Block())
+                if(token.first == "NEWLINE")
+                {
+                    Block();
                     return 1;
+                }
             }
             else
             {
                 AgregarError("Error de : (Produccion Statement)-while",pos);
-                token = nextToken();
+                /*token = nextToken();
                 cout<<"token: "<<token.first<<" "<<token.second<<endl;
                 if(Block())
-                    return 1;
+                    return 1;*/
             }
         }
     }
@@ -454,59 +551,70 @@ bool Parser::Statement()
             if (token.second == "in")
             {
                 token = nextToken();
-                if (Expr())
+                if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Expr
                 {
+                    Expr();
                     if (token.second == ":")
                     {
                         token = nextToken();
-                        if(Block())
+                        if(token.first == "NEWLINE")
+                        {
+                            Block();
                             return 1;
+                        }
                     }
                     else
                     {
                         AgregarError("Error de : (Produccion Statement)-for ",pos);
-                        token = nextToken();
+                       /* token = nextToken();
                         //token = nextToken();
                         cout<<"token: "<<token.first<<" "<<token.second<<endl;
                         if(Block())
-                            return 1;
+                            return 1;*/
                     }
                 }
             }
             else
             {
                 AgregarError("Error de in (Produccion Statement)-for",pos);
-                token = nextToken();
+                /*token = nextToken();
                 //token = nextToken();
                 cout<<"token: "<<token.first<<" "<<token.second<<endl;
                 if(Block())
-                    return 1;
+                    return 1;*/
             }
         }
         else
         {
             AgregarError("Error de ID (Produccion Statement)-for",pos);
-            token = nextToken();
+            /*token = nextToken();
             //token = nextToken();
             cout<<"token: "<<token.first<<" "<<token.second<<endl;
             if(Block())
-                return 1;
+                return 1;*/
         }
     }
-    if (SimpleStatement())
+    if (token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "("  || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first ==  "STRING" || token.second == "[")
     {
+        SimpleStatement();
         if (token.first == "NEWLINE")
         {
             token = nextToken();
             return 1;
         }
     }
+    //Folllows
+    /*if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "["|| token.second == "DEDENT" || token.second == "else" || token.second == "elif")
+        return 1;*/
+    //Colocar error
+    //AgregarError("Error en la produccion Statement",pos);
     return 0;
 }
 bool Parser::ElifList()
 {
-    if (Elif())
+    if (token.second == "elif")
     {
+        Elif();
         if(ElifList())
             return 1;
     }
@@ -514,34 +622,46 @@ bool Parser::ElifList()
     //{$,if,while,for,pass,return,-,(,ID,None,True,False,INTEGER,STRING,[,def,DEDENT,else,elif}
     if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "["|| token.second == "DEDENT" || token.second == "else" || token.second == "elif")
         return 1;
+    //Colocar error
+    //AgregarError("Error en la produccion ElifList",pos);
     return 0;
 }
-bool Parser::Elif()
+bool Parser::Elif() //Funcion con vacio
 {
     if (token.second == "elif")
     {
         token = nextToken();
-        if (Expr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Expr
+            
         {
+            Expr();
             if (token.second == ":")
             {
                 token = nextToken();
-                if(Block())
+                if(token.first == "NEWLINE")
+                {
+                    Block();
                     return 1;
+                }
             }
            else
            {
                AgregarError("Error de : (Produccion Elif) ",pos);
-               token = nextToken();
+               /*token = nextToken();
                cout<<"token: "<<token.first<<" "<<token.second<<endl;
                if(Block())
-                   return 1;
+                   return 1;*/
            }
         }
     }
+    //Follows
+    if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[" ||token.first == "DEDENT" || token.second == "def" || token.second == "elif" || token.second == "else")
+        return 1;
+    //Colocar error
+    //AgregarError("Error en la produccion elif",pos);
     return 0;
 }
-bool Parser::Else()
+bool Parser::Else() //Funcion con vacios
 {
     if (token.second == "else")
     {
@@ -549,22 +669,27 @@ bool Parser::Else()
         if (token.second == ":")
         {
             token = nextToken();
-            if(Block())
+            if(token.first == "NEWLINE")
+            {
+                Block();
                 return 1;
+            }
         }
         else
         {
             AgregarError("Error de : (Produccion Else)",pos);
-            if(Block())
-                return 1;
+            //if(Block())
+              //  return 1;
         }
     }
     //{$,if,while,for,pass,return,-,(,ID,None,True,False,INTEGER,STRING,[,def,DEDENT,elif,else}
     if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[" ||token.first == "DEDENT" || token.second == "def" || token.second == "elif" || token.second == "else")
         return 1;
+    //Colocar error
+    //AgregarError("Error en la produccion else",pos);
     return 0;
 }
-bool Parser::SSTail()
+bool Parser::SSTail() //Funcion con vacio
 {
     if (token.second == "=")
     {
@@ -572,15 +697,18 @@ bool Parser::SSTail()
         if(Expr())
             return 1;
     }
+    //Follow
     if (token.first == "NEWLINE")
         return 1;
-    AgregarError("Se esperaba como follow un NEWLINE (Produccion SSTail) ",pos);
+    //Colocar error
+    //AgregarError("No se termino la Produccion SSTail",pos);
     return 0;
 }
 bool Parser::SimpleStatement()
 {
-    if (Expr())
+    if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Expr
     {
+        Expr();
         if(SSTail())
             return 1;
     }
@@ -595,32 +723,55 @@ bool Parser::SimpleStatement()
         if(ReturnExpr())
             return 1;
     }
+    //Follows
+    /*if(token.first == "NEWLINE")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion SimpleStatement",pos);
     return 0;
 }
-bool Parser::ReturnExpr()
+bool Parser::ReturnExpr() //Funcion con vacio
 {
-    if (Expr())
+    if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Expr
+    {
+        Expr();
         return 1;
+    }
     //{NEWLINE}
     if (token.first == "NEWLINE")
         return 1;
-    AgregarError("Se esperaba como follow un NEWLINE (Produccion ReturnExpr)",pos);
+    //Error
+    AgregarError("Error en el return (Produccion ReturnExpr)",pos);
+    SaltarError();
+    token = nextToken();
     return 0;
 }
 bool Parser::Expr()
 {
-    if (orExpr())
-        if (ExprPrime())
+    if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de orExpr
+    {
+        orExpr();
+        if (token.second == "if")
+        {
+            ExprPrime();
             return 1;
+        }
+    }
+    //Follows
+    /*if (token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion Expr",pos);
     return 0;
 }
-bool Parser::ExprPrime()
+bool Parser::ExprPrime() //Funcion con vacio
 {
     if (token.second == "if")
     {
         token = nextToken();
-        if (andExpr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de andExpr
         {
+            andExpr();
             if (token.second == "else")
             {
                 token = nextToken();
@@ -631,152 +782,249 @@ bool Parser::ExprPrime()
             else
             {
                 AgregarError("Error de else (Produccion ExprPrime)",pos);
-                return 1;
+                //return 1;
             }
         }
     }
     //{:,NEWLINE,=,),],,}
     if (token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //Error
+    //AgregarError("Error en la produccion ExprPrime",pos);
     return 0;
 }
 bool Parser::orExpr()
 {
-    if (andExpr())
-        if(orExprPrime())
-           return 1;
+    if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de andExpr
+    {
+        andExpr();
+        if(token.second == "or")
+        {
+            orExprPrime();
+            return 1;
+        }
+    }
+    //Follows
+    /*if (token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion orExpr",pos);
     return 0;
 }
-bool Parser::orExprPrime()
+bool Parser::orExprPrime() //Funcion con vacio
 {
     if (token.second == "or")
     {
         token = nextToken();
-        if (andExpr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de andExpr
+        {
+            andExpr();
             if(orExprPrime())
                 return 1;
+        }
     }
     //{if,:,NEWLINE,=,),],,}
     if (token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //Error
+    //AgregarError("Error en la produccion orExprPrime",pos);
     return 0;
 }
 bool Parser::andExpr()
 {
-    if (notExpr())
-        if(andExprPrime())
+    if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de notExpr
+    {
+        notExpr();
+        if(token.second == "and")
+        {
+            andExprPrime();
             return 1;
+        }
+    }
+    //Follows
+    /*if (token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion andExpr",pos);
     return 0;
 }
-bool Parser::andExprPrime()
+bool Parser::andExprPrime() //Funcion con vacio
 {
     if (token.second == "and")
     {
         token = nextToken();
-        if (notExpr())
+        if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de notExpr
+        {
+            notExpr();
             if(andExprPrime())
                 return 1;
+        }
     }
     //{else,if,:,NEWLINE,=,or,),],,}
     if (token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //Error
+    AgregarError("Error en la produccion andExprPrime",pos);
     return 0;
 }
 bool Parser::notExpr()
 {
-    if (CompExpr())
-        if(notExprPrime())
+    if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de CompExpr
+    {
+        CompExpr();
+        if(token.second == "not")
+        {
+            notExprPrime();
             return 1;
+        }
+    }
+    //Follows
+   /* if (token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion notExpr",pos);
     return 0;
 }
-bool Parser::notExprPrime()
+bool Parser::notExprPrime() //Funcion con vacio
 {
     if (token.second == "not")
     {
         token = nextToken();
-        if (CompExpr())
+        if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de CompExpr
+        {
+            CompExpr();
             if(notExprPrime())
                 return 1;
+        }
     }
     //{and,else,if,:,NEWLINE,=,or,),],,}
     if (token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //Error
+    //AgregarError("Error en la produccion notExprPrime",pos);
     return 0;
 }
 bool Parser::CompExpr()
 {
-    if (intExpr())
-        if(CompExprPrime())
+    if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de intExpr
+    {
+        intExpr();
+        if(token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is")
+        {
+            CompExprPrime();
             return 1;
+        }
+    }
     return 0;
 }
-bool Parser::CompExprPrime()
+bool Parser::CompExprPrime() //Funcion con vacio
 {
-    if (CompOp())
+    if (token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is") //First de CompOp
     {
-        if (intExpr())
-            if(CompExprPrime())
+        CompOp();
+        if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de intExpr
+        {
+            intExpr();
+            if(token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is") //First de CompExprPrime
+            {
+                CompExprPrime();
                 return 1;
+            }
+        }
     }
     //{not,and,else,if,:,NEWLINE,=,or,),],,}
     if (token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //Error
+    //AgregarError("Error en la produccion CompExprPrime",pos);
     return 0;
 }
 bool Parser::intExpr()
 {
-    if (Term())
-        if(intExprPrime())
+    if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Term
+    {
+        Term();
+        if(token.second == "+" || token.second == "-")
+        {
+            intExprPrime();
             return 1;
+        }
+    }
+    //Follows
+    /*if (token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion intExpr",pos);
     return 0;
 }
-bool Parser::intExprPrime()
+bool Parser::intExprPrime() //Funcion con vacio
 {
     if (token.second == "+" || token.second == "-")
     {
         token = nextToken();
-        if (Term())
+        if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Term
         {
-            if(intExprPrime())
+            Term();
+            if(token.second == "+" || token.second == "-")
+            {
+                intExprPrime();
                 return 1;
+            }
         }
         else
         {
             AgregarError("Error en la produccion falta un ID",pos);
-            return 0;
+            //return 0;
         }
     }
     //{not,and,else,if,:,NEWLINE,=,or,==,!=,<,>,<=,>=,is,),],,}
     if (token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //Error
+    //AgregarError("Error en la produccion intExprPrime",pos);
     return 0;
 }
 bool Parser::Term()
 {
-    if (Factor())
-        if(TermPrime())
+    if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Factor
+    {
+        Factor();
+        if(token.second == "*" || token.second == "//" || token.second == "%")
+        {
+            TermPrime();
             return 1;
+        }
+    }
+    //Follows
+    /*if (token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //AgregarError("Error en la produccion Term",pos);
     return 0;
 }
-bool Parser::TermPrime()
+bool Parser::TermPrime() //Funcion con vacio
 {
     if (token.second == "*" || token.second == "//" || token.second == "%")
     {
         token = nextToken();
-        if (Factor())
+        if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Factor
         {
-            if(TermPrime())
+            Factor();
+            if(token.second == "*" || token.second == "//" || token.second == "%") //First de TermPrime
+            {
+                TermPrime();
                 return 1;
+            }
         }
         else
         {
             AgregarError("Error en la produccion TermPrime ",pos);
-            return 1;
+            //return 1;
         }
     }
     //:, NEWLINE, =, if, else, or, and, not, ==, !=, <, >, <=, >=, is, +, -, ), ], ,
     if (token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //AgregarError("Error en la produccion TermPrime",pos);
     return 0;
 }
 bool Parser::Factor()
@@ -784,20 +1032,33 @@ bool Parser::Factor()
     if (token.second == "-")
     {
         token = nextToken();
-        if(Factor())
+        if(token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Factor
+        {
+            Factor();
             return 1;
+        }
     }
-    if (Name())
+    if (token.first == "ID")//First de Name
+    {
+        Name();
         return 1;
-    if (Literal())
+    }
+    if (token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING") //First de Literal
+    {
+        Literal();
         return 1;
-    if (List())
+    }
+    if (token.second == "[") //First List
+    {
+        List();
         return 1;
+    }
     if (token.second == "(")
     {
         token = nextToken();
-        if (Expr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[")//First Expr
         {
+            Expr();
             if (token.second == ")")
             {
                 token = nextToken();
@@ -806,11 +1067,16 @@ bool Parser::Factor()
             else
             {
                 AgregarError("Error en ) (Produccion Factor)",pos);
-                token = nextToken();
-                return 1;
+                //token = nextToken();
+                //return 1;
             }
         }
     }
+    //Follows
+    /*if (token.second == "*" || token.second == "//" || token.second == "%" || token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //Error
+    AgregarError("Error en la produccion Factor",pos);
     return 0;
 }
 bool Parser::Name()
@@ -818,20 +1084,27 @@ bool Parser::Name()
     if (token.first == "ID")
     {
         token = nextToken();
-        if(NameTail())
+        if(token.second == "(" || token.second == "[")
+        {
+            NameTail();
             return 1;
-        //else
-          //  AgregarError("Error solo se uso ID",pos);
+        }
     }
+    //Follows
+    /*if (token.second == "*" || token.second == "//" || token.second == "%" || token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
+        return 1;*/
+    //Error
+    //AgregarError("Error en la produccion Name",pos);
     return 0;
 }
-bool Parser::NameTail()
+bool Parser::NameTail() //Funcion con vacio
 {
     if (token.second == "(")
     {
         token = nextToken();
-        if (ExprList())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[")//First ExprList
         {
+            ExprList();
             if (token.second == ")")
             {
                 token = nextToken();
@@ -840,25 +1113,36 @@ bool Parser::NameTail()
             else
             {
                 AgregarError("Error en ) (Produccion NameTail)",pos);
-                token = nextToken();
-                return 1;
+                //token = nextToken();
+                //return 1;
             }
         }
     }
-    if (List())
+    if (token.second == "[")
+    {
+        List();
         return 1;
+    }
     //{*,//,%,+,-,not,and,else,if,:,NEWLINE,=,or,==,!=,<,>,<=,>=,is,),],,}
     if (token.second == "*" || token.second == "//" || token.second == "%" || token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
+    //Error
+    //AgregarError("Error en la produccion NameTail",pos);
     return 0;
 }
 bool Parser::Literal()
 {
+    //First
     if (token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING")
     {
         token = nextToken();
         return 1;
     }
+    //Follows
+   /* if(token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "if" || token.second == "else" || token.second == "or" || token.second == "and" || token.second == "not" || token.second =="==" || token.second =="!=" || token.second == "<"|| token.second ==">" || token.second == "<=" || token.second == ">=" || token.second =="is" || token.second == "+" || token.second == "-" || token.second == "*" || token.second =="//" || token.second =="%" || token.second == ")" || token.second =="]" || token.second ==",")
+       return 1;*/
+    //Colocar error
+    //AgregarError("Error en la produccion Literal",pos);
     return 0;
 }
 bool Parser::List()
@@ -866,8 +1150,9 @@ bool Parser::List()
     if (token.second == "[")
     {
         token = nextToken();
-        if (ExprList())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First ExprList
         {
+            ExprList();
             if (token.second == "]")
             {
                 token = nextToken();
@@ -876,54 +1161,76 @@ bool Parser::List()
             else
             {
                 AgregarError("Error ] (Produccion Lista)",pos);
-                token = nextToken();
-                return 1;
+                //token = nextToken();
+                //return 1;
             }
         }
- //       else
-   //         return 1;
     }
+    //Follows
+    /*if(token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "if" || token.second == "else" || token.second == "or" || token.second == "and" || token.second == "not" || token.second =="==" || token.second =="!=" || token.second == "<"|| token.second ==">" || token.second == "<=" || token.second == ">=" || token.second =="is" || token.second == "+" || token.second == "-" || token.second == "*" || token.second =="//" || token.second =="%" || token.second == ")" || token.second =="]" || token.second ==",")
+       return 1;*/
+    //Colocar error
+    //AgregarError("Error en la produccion List",pos);
     return 0;
 }
-bool Parser::ExprList()
+bool Parser::ExprList() //Funcion con vacio
 {
-    if (Expr())
+    if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First Expr
     {
-        if(ExprListTail())
+        Expr();
+        if(token.second == ",") //First ExprListTail
+        {
+            ExprListTail();
             return 1;
+        }
     }
+    //Follows
     if (token.second == ")" || token.second == "]")
         return 1;
-    AgregarError("Error en contenido de la lista (Produccion ExprList) ",pos);
+    //Colocar Error
+    //AgregarError("Error en contenido de la lista (Produccion ExprList) ",pos);
     return 0;
 }
-bool Parser::ExprListTail()
+bool Parser::ExprListTail() //Funcion con vacio
 {
     if (token.second == ",")
     {
         token = nextToken();
-        if (Expr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First Expr
         {
-            if(ExprListTail())
+            Expr();
+            if(token.second == ",") //First ExprListTail
+            {
+                ExprListTail();
                 return 1;
+            }
         }
         else
         {
-            AgregarError("Error de , (Produccion ExprListTail)",pos);
-            return 1;
+            AgregarError("Error no se termino la produccion ExprListTail",pos);
+            //return 1;
         }
     }
+    //Follows
     if (token.second == ")" || token.second == "]")
         return 1;
+    //Colocar error
+    //AgregarError("Error en (ExprListTail)",pos);
     return 0;
 }
 bool Parser::CompOp()
 {
+    //First's
     if(token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is")
     {
         token = nextToken();
         return 1;
     }
+    //Follows
+    /*if(token.second == "-" || token.second == "(" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[")
+        return 1;*/
+    //Error
+    //AgregarError("Se esperaba un signo de comparacion (CompOp)",pos);
     return 0;
 }
 int main(int argc, const char* argv[])
@@ -937,7 +1244,7 @@ int main(int argc, const char* argv[])
     else
     {
         cout<<"Parse completado con errores"<<endl;
-        parser.ImprimirErrores();
     }
+    parser.ImprimirErrores();
     return 0;
 }
