@@ -432,7 +432,7 @@ void Scanner::imprimirErrores()
 }
 vector<pair<string, string>> Realizar()
 {
-    Scanner scan("/Users/lucho/Desktop/CursosU_2023-1/Compiladores/CasosPrueba/test5.txt");
+    Scanner scan("/Users/lucho/Desktop/CursosU_2023-1/Compiladores/CasosPrueba/testFinal.txt");
     scan.leerArchivo();
     scan.escaner();
     scan.imprimirTokens();
@@ -440,7 +440,10 @@ vector<pair<string, string>> Realizar()
     vector<pair<string, string>> v;
     v = scan.GetTokens();
     //v.erase(v.end()-1);
-    //v.push_back(make_pair("DEDENT","DEDENT"));
+    if(v.size() != 0)
+    {
+        //v.push_back(make_pair("DEDENT","DEDENT"));
+    }
     v.push_back(make_pair("$", "$"));
     return v;
 }
