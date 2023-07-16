@@ -418,9 +418,11 @@ bool Parser::Block()
                     {
                         if(token.first != "$")
                             AgregarError("Error de DEDENT",pos);
+                        SaltarError(); //Not sure about this. If it doesnt work i will change it
+                        token = nextToken();
+                        token = nextToken();
+                        StatementList();
                         return 1;
-                        //token = nextToken();
-                        //return 1;
                     }
                 }
                 else
@@ -444,7 +446,8 @@ bool Parser::Block()
         }
         else
         {
-            AgregarError("Error de INDENT",pos);
+            if(token.first != "$")
+                AgregarError("Error de INDENT",pos);
             SaltarError(); //Not sure about this. If it doesnt work i will change it
             token = nextToken();
             token = nextToken();
@@ -536,15 +539,12 @@ bool Parser::Statement()
                     token = nextToken();
                 Block();
                 return 1;
-                /*token = nextToken();
-                cout<<"token: "<<token.first<<" "<<token.second<<endl;
-                if(Block())
-                    return 1;*/
             }
         }
         else
         {
             AgregarError("Error Expr (Produccion Statement)-while",pos);
+            SaltarError();
             if(token.first != "NEWLINE")
                 token = nextToken();
             Block();
@@ -574,17 +574,28 @@ bool Parser::Statement()
                     }
                     else
                     {
-                        AgregarError("Error de : (Produccion Statement)-for ",pos);
+                        AgregarError("Error, se esperaba un : (Produccion Statement)-for ",pos);
+                        SaltarError();
                         if(token.first != "NEWLINE")
                             token = nextToken();
                         Block();
                         return 1;
                     }
                 }
+                else
+                {
+                    AgregarError("Error Expr (Produccion Statemet)-for",pos);
+                    SaltarError();
+                    if (token.first != "NEWLINE")
+                        token = nextToken();
+                    Block();
+                    return 1;
+                }
             }
             else
             {
-                AgregarError("Error de in (Produccion Statement)-for",pos);
+                AgregarError("Error, se esperaba un in (Produccion Statement)-for",pos);
+                SaltarError();
                 if(token.first != "NEWLINE")
                     token = nextToken();
                 Block();
@@ -593,7 +604,8 @@ bool Parser::Statement()
         }
         else
         {
-            AgregarError("Error de ID (Produccion Statement)-for",pos);
+            AgregarError("Error, se esperaba un ID (Produccion Statement)-for",pos);
+            SaltarError();
             if(token.first != "NEWLINE")
                 token = nextToken();
             Block();
@@ -980,6 +992,10 @@ bool Parser::TermPrime() //Funcion con vacio
             if(TermPrime())
                 return 1;
         }
+        else
+        {
+            AgregarError("Error Factor (Produccion TermPrime)",pos);
+        }
     }
     //:, NEWLINE, =, if, else, or, and, not, ==, !=, <, >, <=, >=, is, +, -, ), ], ,
     if (token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
@@ -1029,8 +1045,6 @@ bool Parser::Factor()
             else
             {
                 AgregarError("Error en ) (Produccion Factor)",pos);
-                //token = nextToken();
-                //return 1;
             }
         }
     }
@@ -1053,21 +1067,16 @@ bool Parser::NameTail() //Funcion con vacio
     if (token.second == "(")
     {
         token = nextToken();
-        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[")//First ExprList
+        if(ExprList())
         {
-            if(ExprList())
+            if (token.second == ")")
             {
-                if (token.second == ")")
-                {
-                    token = nextToken();
-                    return 1;
-                }
-                else
-                {
-                    AgregarError("Error en ) (Produccion NameTail)",pos);
-                    //token = nextToken();
-                    //return 1;
-                }
+                token = nextToken();
+                return 1;
+            }
+            else
+            {
+                AgregarError("Error en ) (Produccion NameTail)",pos);
             }
         }
     }
@@ -1100,29 +1109,19 @@ bool Parser::List()
     if (token.second == "[")
     {
         token = nextToken();
-        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second =="True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First ExprList
+        if(ExprList())
         {
-            if(ExprList())
+            if (token.second == "]")
             {
-                if (token.second == "]")
-                {
-                    token = nextToken();
-                    return 1;
-                }
-                else
-                {
-                    AgregarError("Error ] (Produccion Lista)",pos);
-                    //token = nextToken();
-                    //return 1;
-                }
+                token = nextToken();
+                return 1;
+            }
+            else
+            {
+                AgregarError("Error ] (Produccion Lista)",pos);
             }
         }
     }
-    //Follows
-    /*if(token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "if" || token.second == "else" || token.second == "or" || token.second == "and" || token.second == "not" || token.second =="==" || token.second =="!=" || token.second == "<"|| token.second ==">" || token.second == "<=" || token.second == ">=" || token.second =="is" || token.second == "+" || token.second == "-" || token.second == "*" || token.second =="//" || token.second =="%" || token.second == ")" || token.second =="]" || token.second ==",")
-       return 1;*/
-    //Colocar error
-    //AgregarError("Error en la produccion List",pos);
     return 0;
 }
 bool Parser::ExprList() //Funcion con vacio
