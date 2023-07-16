@@ -224,6 +224,15 @@ bool Parser::Def()
                                     Block();
                                     return 1;
                                 }
+                                else
+                                {
+                                    AgregarError("Error token inesperado se esperaba un NEWLINE",pos);
+                                    SaltarError();
+                                    if(token.first != "NEWLINE")
+                                        token = nextToken();
+                                    Block();
+                                    return 1;
+                                }
                             }
                             else
                             {
@@ -491,6 +500,17 @@ bool Parser::Statement()
                             return 1;
                     }
                 }
+                else
+                {
+                    AgregarError("Error token inesperado se esperaba un NEWLINE",pos);
+                    SaltarError();
+                    if(token.first != "NEWLINE")
+                        token = nextToken();
+                    Block();
+                    ElifList();
+                    Else();
+                    return 1;
+                }
             }
             else
             {
@@ -527,6 +547,15 @@ bool Parser::Statement()
                 token = nextToken();
                 if(token.first == "NEWLINE")
                 {
+                    Block();
+                    return 1;
+                }
+                else
+                {
+                    AgregarError("Error token inesperado se esperaba un NEWLINE",pos);
+                    SaltarError();
+                    if(token.first != "NEWLINE")
+                        token = nextToken();
                     Block();
                     return 1;
                 }
@@ -568,6 +597,15 @@ bool Parser::Statement()
                         token = nextToken();
                         if(token.first == "NEWLINE")
                         {
+                            Block();
+                            return 1;
+                        }
+                        else
+                        {
+                            AgregarError("Error token inesperado se esperaba un NEWLINE",pos);
+                            SaltarError();
+                            if(token.first != "NEWLINE")
+                                token = nextToken();
                             Block();
                             return 1;
                         }
@@ -658,6 +696,15 @@ bool Parser::Elif()
                     Block();
                     return 1;
                 }
+                else
+                {
+                    AgregarError("Error token inesperado se esperaba un NEWLINE",pos);
+                    SaltarError();
+                    if(token.first != "NEWLINE")
+                        token = nextToken();
+                    Block();
+                    return 1;
+                }
             }
            else
            {
@@ -685,6 +732,16 @@ bool Parser::Else() //Funcion con vacios
                 Block();
                 return 1;
             }
+            else
+            {
+                AgregarError("Error token inesperado se esperaba un NEWLINE",pos);
+                SaltarError();
+                if(token.first != "NEWLINE")
+                    token = nextToken();
+                Block();
+                return 1;
+            }
+
         }
         else
         {
