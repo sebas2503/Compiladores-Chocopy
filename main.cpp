@@ -90,15 +90,15 @@ bool Parser::Init()
     pos = 0;
     deteccionError = false;
     token = tok[0];
-    Imprimir2();
+    Imprimir2();//->Usarlo solo para debugear
     cout<<endl;
-    cout <<"---------Parser---------\n";
+    cout <<"-------------------Parser------------------\n";
     if(Program())
     {
         if(deteccionError == false)
             return 1;
     }
-    cout<<"pos: "<<pos<<endl;
+    cout<<"Ultima posicion del recorrido del parser: "<<pos<<endl; //Usarlo para debugear
     return 0;
 }
 void Parser::AgregarError(string error, int pos2)
@@ -110,11 +110,18 @@ void Parser::AgregarError(string error, int pos2)
 }
 void Parser::SaltarError()
 {
-    while(token.first != "NEWLINE" && tok[pos+1].first != "$")
+    while(token.first != "NEWLINE")
     {
         token = nextToken();
         if(token.first == "NEWLINE")
         {
+            
+            /*if(pos+1 == tok.size()-1) //Saber si estoy viendo el ultimo NEWLINE, aun no hago test de esto
+            {
+                pos++;
+                token = tok[pos];
+                break;
+            }*/
             pos = pos - 1;
             token = tok[pos]; //Hacer un retroceso.
             break;
@@ -163,25 +170,7 @@ bool Parser::Program()
 /*
  Puntos a considerar
  -Solo al final de cada produccion si encuentro un error irme hasta el newline. otherwise sigo normal
- -Producciones que si son vacias
-     DefList
-     TypedVarList
-     TypedVarListTail
-     Return
-     StatementList
-     ElifList
-     SSTail
-     ReturnExpr
-     ExprPrime
-     orExprPrime
-     andExprPrime
-     notExprPrime
-     CompExprPrime
-     IntExprPrime
-     TermPrime
-     NameTail
-     ExprList
-     ExprListTail
+ -Ver los errores en las porducciones vacias excepto las q ya usa el def esas andan bien y verificar toda la linea de recursividad del Expr
  */
 bool Parser::DefList() //Funcion con vacio
 {
@@ -196,6 +185,9 @@ bool Parser::DefList() //Funcion con vacio
         return 1;
     //Error
     AgregarError("Error en la produccion DefList",pos);
+    SaltarError();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::Def()
@@ -383,9 +375,15 @@ bool Parser::TypedVarListTail() //Funcion con vacio
             if(TypedVarListTail())
                 return 1;
         }
+        else
+        {
+            AgregarError("Error, no le sigue un ID (Produccion TypedVarListTail)",pos);
+            return 0;
+        }
     }
     if (token.second == ")")
         return 1;
+    AgregarError("Error, token inesperado (Produccion TypedVarListTail)",pos);
     return 0;
 }
 bool Parser::Return() //Funcion con vacio
@@ -402,7 +400,7 @@ bool Parser::Return() //Funcion con vacio
     //Follow
     if (token.second == ":")
         return 1;
-    AgregarError("Error en la produccion Return",pos);
+    AgregarError("Error en la produccion Return (def)",pos);
     return 0;
 }
 bool Parser::Block()
@@ -430,6 +428,8 @@ bool Parser::Block()
                         SaltarError(); //Not sure about this. If it doesnt work i will change it
                         token = nextToken();
                         token = nextToken();
+                        if(token.first == "INDENT" || token.first == "DEDENT")
+                            token = nextToken();
                         StatementList();
                         return 1;
                     }
@@ -440,6 +440,8 @@ bool Parser::Block()
                     SaltarError();
                     token = nextToken(); //Not sure about this. If it doesnt work i will change it
                     token = nextToken();
+                    if(token.first == "INDENT" || token.first == "DEDENT")
+                        token = nextToken();
                     return 1;
                 }
             }
@@ -449,6 +451,8 @@ bool Parser::Block()
                 SaltarError();
                 token = nextToken();
                 token = nextToken();
+                if(token.first == "INDENT" || token.first == "DEDENT")
+                    token = nextToken();
                 StatementList();
                 return 1;
             }
@@ -460,6 +464,8 @@ bool Parser::Block()
             SaltarError(); //Not sure about this. If it doesnt work i will change it
             token = nextToken();
             token = nextToken();
+            if(token.first == "INDENT" || token.first == "DEDENT")
+                token = nextToken();
             StatementList();
         }
     }
@@ -658,6 +664,15 @@ bool Parser::Statement()
             token = nextToken();
             return 1;
         }
+        else
+        {
+            AgregarError("Token inesperado se esperaba un NEWLINE (Produccion Statement)-SimpleStatement",pos);
+            SaltarError();
+            if (token.first != "NEWLINE")
+                token = nextToken();
+            StatementList();
+            return 1;
+        }
     }
     return 0;
 }
@@ -668,15 +683,17 @@ bool Parser::ElifList() //Funcion con vacio
         Elif();
         if(ElifList())
             return 1;
+        else
+            return 0;
     }
-    //DEDENT, if, while, for, pass, return, -, (, ID, None, True, False, INTEGER, STRING, [, else, $
-    //{$,if,while,for,pass,return,-,(,ID,None,True,False,INTEGER,STRING,[,def,DEDENT,else,elif}
+    //Follow
     if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "["|| token.second == "DEDENT" || token.second == "else" || token.second == "elif")
         return 1;
     //Colocar error
     AgregarError("Error en la produccion ElifList",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::Elif()
@@ -716,6 +733,15 @@ bool Parser::Elif()
                return 1;
            }
         }
+        else
+        {
+            AgregarError("Error Expr (Produccion Elif)",pos);
+            SaltarError();
+            if (token.first != "NEWLINE")
+                token = nextToken();
+            Block();
+            return 1;
+        }
     }
     return 0;
 }
@@ -753,13 +779,14 @@ bool Parser::Else() //Funcion con vacios
             return 1;
         }
     }
-    //{$,if,while,for,pass,return,-,(,ID,None,True,False,INTEGER,STRING,[,def,DEDENT,elif,else}
+    //Follow
     if (token.second == "$" || token.second == "if" || token.second == "while" || token.second == "for" || token.second == "pass" || token.second == "return" || token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[" ||token.first == "DEDENT" || token.second == "def" || token.second == "elif" || token.second == "else")
         return 1;
     //Colocar error
     AgregarError("Error en la produccion else",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::SSTail() //Funcion con vacio
@@ -767,11 +794,18 @@ bool Parser::SSTail() //Funcion con vacio
     if (token.second == "=")
     {
         token = nextToken();
-        if(Expr())
+        if (token.second == "-" || token.second == "(" || token.first == "ID" || token.second == "None" || token.second == "True" || token.second == "False" || token.first == "INTEGER" || token.first == "STRING" || token.second == "[") //First de Expr)
+        {
+            Expr();
             return 1;
+        }
         else
         {
             AgregarError("Error, asignacion no terminada (Produccion SSTail)",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
     //Follow
@@ -780,7 +814,8 @@ bool Parser::SSTail() //Funcion con vacio
     //Colocar error
     AgregarError("No se termino la Produccion SSTail",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::SimpleStatement()
@@ -790,6 +825,8 @@ bool Parser::SimpleStatement()
         Expr();
         if(SSTail())
             return 1;
+        else
+            return 0;
     }
     if (token.second == "pass")
     {
@@ -817,7 +854,8 @@ bool Parser::ReturnExpr() //Funcion con vacio
     //Error
     AgregarError("Error en el return (Produccion ReturnExpr)",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::Expr()
@@ -827,6 +865,8 @@ bool Parser::Expr()
         orExpr();
         if(ExprPrime())
             return 1;
+        else
+            return 0;
     }
     return 0;
 }
@@ -846,13 +886,34 @@ bool Parser::ExprPrime() //Funcion con vacio
                     andExpr();
                     if(ExprPrime())
                         return 1;
+                    else
+                        return 0;
+                }
+                else
+                {
+                    AgregarError("Error no se termino el else (Produccion Exprime)",pos);
+                    SaltarError();
+                    if (token.first != "NEWLINE")
+                        token = nextToken();
+                    return 0;
                 }
             }
             else
             {
                 AgregarError("Error de else (Produccion ExprPrime)",pos);
-                //return 1;
+                SaltarError();
+                if(token.first != "NEWLINE")
+                    token = nextToken();
+                return 0;
             }
+        }
+        else
+        {
+            AgregarError("Error AndExpr en la produccion ExprPrime",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
     //{:,NEWLINE,=,),],,}
@@ -861,7 +922,8 @@ bool Parser::ExprPrime() //Funcion con vacio
     //Error
     AgregarError("Error en la produccion ExprPrime",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::orExpr()
@@ -871,6 +933,8 @@ bool Parser::orExpr()
         andExpr();
         if(orExprPrime())
             return 1;
+        else
+            return 0;
     }
     return 0;
 }
@@ -884,15 +948,26 @@ bool Parser::orExprPrime() //Funcion con vacio
             andExpr();
             if(orExprPrime())
                 return 1;
+            else
+                return 0;
+        }
+        else
+        {
+            AgregarError("Error AndExpr, en la produccion OrExprPrime",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
-    //{if,:,NEWLINE,=,),],,}
+    //Follow
     if (token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
     //Error
     AgregarError("Error en la produccion orExprPrime",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::andExpr()
@@ -902,6 +977,8 @@ bool Parser::andExpr()
         notExpr();
         if(andExprPrime())
             return 1;
+        else
+            return 0;
     }
     return 0;
 }
@@ -915,15 +992,27 @@ bool Parser::andExprPrime() //Funcion con vacio
             notExpr();
             if(andExprPrime())
                 return 1;
+            else
+                return 0;
+        }
+        else
+        {
+            AgregarError("Error NotExpr, en la produccion AndExprPrime",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
+
         }
     }
-    //{else,if,:,NEWLINE,=,or,),],,}
+    //Follow
     if (token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
     //Error
     AgregarError("Error en la produccion andExprPrime",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::notExpr()
@@ -932,7 +1021,9 @@ bool Parser::notExpr()
     {
         CompExpr();
         if(notExprPrime())
-                return 1;
+            return 1;
+        else
+            return 0;
     }
     return 0;
 }
@@ -946,15 +1037,26 @@ bool Parser::notExprPrime() //Funcion con vacio
             CompExpr();
             if(notExprPrime())
                 return 1;
+            else
+                return 0;
+        }
+        else
+        {
+            AgregarError("Error CompExpr, en la produccion notExprPrime",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
-    //{and,else,if,:,NEWLINE,=,or,),],,}
+    //Follow
     if (token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
     //Error
     AgregarError("Error en la produccion notExprPrime",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::CompExpr()
@@ -964,6 +1066,8 @@ bool Parser::CompExpr()
         intExpr();
         if(CompExprPrime())
             return 1;
+        else
+            return 0;
     }
     return 0;
 }
@@ -977,19 +1081,26 @@ bool Parser::CompExprPrime() //Funcion con vacio
             intExpr();
             if(CompExprPrime())
                 return 1;
+            else
+                return 0;
         }
         else
         {
             AgregarError("Error de comparacion (Produccion CompExprPrime)",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
-    //{not,and,else,if,:,NEWLINE,=,or,),],,}
+    //Follow
     if (token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
     //Error
     AgregarError("Error en la produccion CompExprPrime",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::intExpr()
@@ -999,6 +1110,8 @@ bool Parser::intExpr()
         Term();
         if(intExprPrime())
             return 1;
+        else
+            return 0;
     }
     return 0;
 }
@@ -1012,20 +1125,26 @@ bool Parser::intExprPrime() //Funcion con vacio
             Term();
             if(intExprPrime())
                 return 1;
+            else
+                return 0;
         }
         else
         {
-            AgregarError("Error en la produccion falta un ID",pos);
-            //return 0;
+            AgregarError("Error Term, no se pudo hacer la operacion (+/-) (Produccion intExprPrime)",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
-    //{not,and,else,if,:,NEWLINE,=,or,==,!=,<,>,<=,>=,is,),],,}
+    //Follow
     if (token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
     //Error
     AgregarError("Error en la produccion intExprPrime",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::Term()
@@ -1035,6 +1154,8 @@ bool Parser::Term()
         Factor();
         if(TermPrime())
             return 1;
+        else
+            return 0;
     }
     return 0;
 }
@@ -1048,18 +1169,25 @@ bool Parser::TermPrime() //Funcion con vacio
             Factor();
             if(TermPrime())
                 return 1;
+            else
+                return 0;
         }
         else
         {
-            AgregarError("Error Factor (Produccion TermPrime)",pos);
+            AgregarError("Error Factor, no se pudo hacer la operacion (* _ % _ //) (Produccion TermPrime)",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
-    //:, NEWLINE, =, if, else, or, and, not, ==, !=, <, >, <=, >=, is, +, -, ), ], ,
+    //Follow
     if (token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
     AgregarError("Error en la produccion TermPrime",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::Factor()
@@ -1101,8 +1229,20 @@ bool Parser::Factor()
             }
             else
             {
-                AgregarError("Error en ) (Produccion Factor)",pos);
+                AgregarError("Error, se esperaba un ) (Produccion Factor)",pos);
+                SaltarError();
+                if(token.first != "NEWLINE")
+                    token = nextToken();
+                return 0;
             }
+        }
+        else
+        {
+            AgregarError("Error Expr, token inesperado (Produccion Factor)",pos);
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
     return 0;
@@ -1113,9 +1253,9 @@ bool Parser::Name()
     {
         token = nextToken();
         if(NameTail())
-        {
             return 1;
-        }
+        else
+            return 0;
     }
     return 0;
 }
@@ -1133,7 +1273,11 @@ bool Parser::NameTail() //Funcion con vacio
             }
             else
             {
-                AgregarError("Error en ) (Produccion NameTail)",pos);
+                AgregarError("Error, se esperaba un ) (Produccion NameTail)",pos);
+                SaltarError();
+                if(token.first != "NEWLINE")
+                    token = nextToken();
+                return 0;
             }
         }
     }
@@ -1142,13 +1286,14 @@ bool Parser::NameTail() //Funcion con vacio
         List();
         return 1;
     }
-    //{*,//,%,+,-,not,and,else,if,:,NEWLINE,=,or,==,!=,<,>,<=,>=,is,),],,}
+    //Follow
     if (token.second == "*" || token.second == "//" || token.second == "%" || token.second == "+" || token.second == "-" || token.second == "not" || token.second == "and" || token.second == "else" || token.second == "if" || token.second == ":" || token.first == "NEWLINE" || token.second == "=" || token.second == "or" || token.second == "==" || token.second == "!=" || token.second == "<" || token.second == ">" || token.second == "<=" || token.second == ">=" || token.second == "is" || token.second == ")" || token.second == "]" || token.second == ",")
         return 1;
     //Error
     AgregarError("Error en la produccion NameTail",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::Literal()
@@ -1176,6 +1321,10 @@ bool Parser::List()
             else
             {
                 AgregarError("Error ] (Produccion Lista)",pos);
+                SaltarError(); //Not sure about this.
+                if(token.first != "NEWLINE")
+                    token = nextToken();
+                return 0;
             }
         }
     }
@@ -1188,14 +1337,16 @@ bool Parser::ExprList() //Funcion con vacio
         Expr();
         if(ExprListTail())
             return 1;
+        else
+            return 0;
     }
     //Follows
     if (token.second == ")" || token.second == "]")
         return 1;
     //Colocar Error
     AgregarError("Error en contenido de la lista (Produccion ExprList) ",pos);
-    SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::ExprListTail() //Funcion con vacio
@@ -1208,20 +1359,26 @@ bool Parser::ExprListTail() //Funcion con vacio
             Expr();
             if(ExprListTail())
                 return 1;
+            else
+                return 0;
         }
         else
         {
             AgregarError("Error no se termino la produccion ExprListTail",pos);
-            //return 1;
+            SaltarError();
+            if(token.first != "NEWLINE")
+                token = nextToken();
+            return 0;
         }
     }
     //Follows
     if (token.second == ")" || token.second == "]")
         return 1;
     //Colocar error
-    AgregarError("Error en (ExprListTail)",pos);
+    AgregarError("Error, token inesperado (Produccion ExprListTail)",pos);
     SaltarError();
-    token = nextToken();
+    if(token.first != "NEWLINE")
+        token = nextToken();
     return 0;
 }
 bool Parser::CompOp()
@@ -1240,11 +1397,11 @@ int main(int argc, const char* argv[])
     bool  j = parser.Init();
     if (j)
     {
-        cout<<"Parser completado sin errores"<<endl;
+        cout<<"Parser completado sin errores - Gramatica Aceptada"<<endl;
     }
     else
     {
-        cout<<"Parse completado con errores"<<endl;
+        cout<<"Parser completado con errores - Gramatica No Aceptada"<<endl;
     }
     parser.ImprimirErrores();
     return 0;
