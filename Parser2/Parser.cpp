@@ -1275,8 +1275,10 @@ bool Parser::NameTail() //Funcion con vacio
     }
     if (token.valor == "[")
     {
-        List();
-        return 1;
+        if(List())
+            return 1;
+        else
+            return 0;
     }
     //Follow
     if (token.valor == "*" || token.valor == "//" || token.valor == "%" || token.valor == "+" || token.valor == "-" || token.valor == "not" || token.valor == "and" || token.valor == "else" || token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == "or" || token.valor == "==" || token.valor == "!=" || token.valor == "<" || token.valor == ">" || token.valor == "<=" || token.valor == ">=" || token.valor == "is" || token.valor == ")" || token.valor == "]" || token.valor == ",")
