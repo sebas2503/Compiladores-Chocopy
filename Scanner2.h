@@ -37,8 +37,15 @@ struct Token
         columna = columna_;
         error = error_;
     }
+    Token()
+    {
+        valor = " ";
+        tipo = " ";
+        error = " ";
+        fila = 0;
+        columna = 0;
+    }
 };
-
 struct Scanner
 {
     vector<Token> tokens;
@@ -62,17 +69,13 @@ struct Scanner
     void imprimirTokens();
     void imprimirErrores();
     bool verificarIndentacion(int n);
-    vector<pair<string, string>> GetTokens();
+    vector<Token> GetTokens();
     //void verificarEspacios(); // se utiliza para evitar colocar newline luego de que ocurra un error y no se detecte un token. PREGUNTAR, creo que esta bien asi
 };
-vector<pair<string, string>> Scanner::GetTokens()
+vector<Token> Scanner::GetTokens()
 {
-    vector<pair<string, string>> v;
-    for (int i = 0; i < tokens.size(); i++)
-    {
-        v.push_back(make_pair(tokens[i].tipo, tokens[i].valor));
-    }
-    return v;
+    tokens.push_back(Token("$", "$", fila+1,1));
+    return tokens;
 }
 char Scanner::getchar()
 {
@@ -430,21 +433,13 @@ void Scanner::imprimirErrores()
         cout << "INFO SCAN - " << (*it).tipo << "  [" << (*it).valor << "] found at (" << (*it).fila << ":" << (*it).columna << ") " << (*it).error << endl;
     }
 }
-vector<pair<string, string>> Realizar()
+vector<Token> Realizar()
 {
     Scanner scan("/Users/lucho/Desktop/CursosU_2023-1/Compiladores/CasosPrueba/testFinal.txt");
     scan.leerArchivo();
     scan.escaner();
     scan.imprimirTokens();
     scan.imprimirErrores();
-    vector<pair<string, string>> v;
-    v = scan.GetTokens();
-    //v.erase(v.end()-1);
-    if(v.size() != 0)
-    {
-        //v.push_back(make_pair("DEDENT","DEDENT"));
-    }
-    v.push_back(make_pair("$", "$"));
-    return v;
+    return scan.GetTokens();
 }
 #endif /* Scanner2_h */
