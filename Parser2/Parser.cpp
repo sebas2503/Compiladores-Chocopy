@@ -86,6 +86,8 @@ bool Parser::DefList() //Funcion con vacio
         Def();
         if(DefList())
             return 1;
+        else
+            return 0;
     }
     //Follow
     if (token.valor == "$" || token.valor == "if" || token.valor == "while" || token.valor == "for" || token.valor == "pass" || token.valor == "return" || token.valor == "-" || token.valor == "(" || token.tipo == "ID" || token.valor == "None" || token.valor == "True" || token.valor == "False" || token.tipo == "INTEGER" || token.tipo == "STRING" || token.valor == "[")
