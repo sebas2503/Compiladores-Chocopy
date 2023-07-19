@@ -1337,6 +1337,7 @@ bool Parser::ExprList() //Funcion con vacio
         return 1;
     //Colocar Error
     AgregarError("Error en contenido de la lista (Produccion ExprList)",token.fila);
+    SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
     return 0;
