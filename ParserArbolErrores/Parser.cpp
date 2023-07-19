@@ -274,7 +274,7 @@ AST* Parser::DefList() //Funcion con vacio
     if (token.valor == "$" || token.valor == "if" || token.valor == "while" || token.valor == "for" || token.valor == "pass" || token.valor == "return" || token.valor == "-" || token.valor == "(" || token.tipo == "ID" || token.valor == "None" || token.valor == "True" || token.valor == "False" || token.tipo == "INTEGER" || token.tipo == "STRING" || token.valor == "[")
         return h1;
     //Error
-    AgregarError("Error en la produccion DefList",token.fila);
+    AgregarError("Error, token inesperado en la produccion DefList",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -323,7 +323,7 @@ AST* Parser::Def()
                                 }
                                 else
                                 {
-                                    AgregarError("Error token inesperado se esperaba un NEWLINE",token.fila);
+                                    AgregarError("Error, token inesperado se esperaba un NEWLINE (Produccion Def)",token.fila);
                                     SaltarError();
                                     if(token.tipo != "NEWLINE")
                                         token = nextToken();
@@ -338,7 +338,7 @@ AST* Parser::Def()
                             }
                             else
                             {
-                                AgregarError("Error de : (Produccion Def) ", token.fila);
+                                AgregarError("Error, se esperba un : (Produccion Def) ", token.fila);
                                 SaltarError();
                                 if(token.tipo != "NEWLINE")
                                     token = nextToken();
@@ -367,7 +367,7 @@ AST* Parser::Def()
                     }
                     else
                     {
-                        AgregarError("Error de ) (Produccion Def) ", token.fila);
+                        AgregarError("Error, se esperaba un ) (Produccion Def) ", token.fila);
                         SaltarError();
                         if(token.tipo != "NEWLINE")
                             token = nextToken();
@@ -396,7 +396,7 @@ AST* Parser::Def()
             }
             else
             {
-                AgregarError("Error de ( (Produccion Def) ", token.fila);
+                AgregarError("Error, se esperaba un ( (Produccion Def) ", token.fila);
                 SaltarError();
                 if(token.tipo != "NEWLINE")
                     token = nextToken();
@@ -412,7 +412,7 @@ AST* Parser::Def()
         }
         else
         {
-            AgregarError("Error de ID (Produccion Def) ", token.fila);
+            AgregarError("Error, se esperaba un ID (Produccion Def) ", token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -452,13 +452,13 @@ AST* Parser::TypedVar()
             }
             else
             {
-                AgregarError("Error en la produccion TypedVar",token.fila);
+                AgregarError("Error despues de los : (Produccion TypedVar)",token.fila);
                 return 0;
             }
         }
         else
         {
-            AgregarError("Error de : (Produccion TypedVar) ",token.fila);
+            AgregarError("Error se esperaba un : (Produccion TypedVar) ",token.fila);
             return 0;
         }
     }
@@ -495,7 +495,7 @@ AST* Parser::Type()
                 }
                 else
                 {
-                    AgregarError("Error de ] (Produccion Type) ",token.fila);
+                    AgregarError("Error, se esperaba un ] (Produccion Type) ",token.fila);
                     return 0;
                 }
             }
@@ -531,9 +531,8 @@ AST* Parser::TypedVarList() //Funcion con vacio
     }
     if (token.valor == ")")
         return h1;
-    AgregarError("Error en la produccion TypedVarList", token.fila);
-    //return 0; -> Por si solo quiere que se muestre el error de TypedVarList
-    return 0; //-> Por si quiere que se muestre el error de cierre de parentesis
+    AgregarError("Error, token inesperado en la produccion TypedVarList", token.fila);
+    return 0; //-> return 1 Por si quiere que se muestre el error de cierre de parentesis
 }
 AST* Parser::TypedVarListTail() //Funcion con vacio
 {
@@ -566,7 +565,7 @@ AST* Parser::TypedVarListTail() //Funcion con vacio
     }
     if (token.valor == ")")
         return h1;
-    AgregarError("Error, token inesperado (Produccion TypedVarListTail)",token.fila);
+    AgregarError("Error, token inesperado: "+ token.tipo + " (Produccion TypedVarListTail)",token.fila);
     return 0;
 }
 AST* Parser::Return() //Funcion con vacio
@@ -592,7 +591,7 @@ AST* Parser::Return() //Funcion con vacio
     //Follow
     if (token.valor == ":")
         return h1;
-    AgregarError("Error en la produccion Return (def)",token.fila);
+    AgregarError("Error, token inesperado en la produccion Return (def)",token.fila);
     return 0;
 }
 AST* Parser::Block()
@@ -642,7 +641,7 @@ AST* Parser::Block()
                     }
                     else
                     {
-                        AgregarError("Error de StatementList",token.fila);
+                        AgregarError("Error de StatementList, token inesperado: "+token.valor,token.fila);
                         SaltarError();
                         if(token.tipo != "NEWLINE")
                             token = nextToken();
@@ -656,7 +655,7 @@ AST* Parser::Block()
             }
             else
             {
-                AgregarError("Error de Statement",token.fila);
+                AgregarError("Error de Statement, token inesperado: "+token.valor,token.fila);
                 SaltarError();
                 if(token.tipo != "NEWLINE")
                     token = nextToken();
@@ -759,7 +758,7 @@ AST* Parser::Statement()
                     }
                     else
                     {
-                        AgregarError("Error token inesperado se esperaba un NEWLINE",token.fila);
+                        AgregarError("Error, token inesperado se esperaba un NEWLINE (Produccion Statement)-if",token.fila);
                         SaltarError();
                         if(token.tipo != "NEWLINE")
                             token = nextToken();
@@ -782,7 +781,7 @@ AST* Parser::Statement()
                 }
                 else
                 {
-                    AgregarError("Error de : (Produccion Statement)-if ",token.fila);
+                    AgregarError("Error, se esperaba un : (Produccion Statement)-if ",token.fila);
                     SaltarError();
                     if(token.tipo != "NEWLINE")
                         token = nextToken();
@@ -827,7 +826,7 @@ AST* Parser::Statement()
         }
         else
         {
-            AgregarError("Error Expr (Produccion Statement)-if",token.fila);
+            AgregarError("Error Expr, error despues del token if (Produccion Statement)-if",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -873,7 +872,7 @@ AST* Parser::Statement()
                     }
                     else
                     {
-                        AgregarError("Error token inesperado se esperaba un NEWLINE",token.fila);
+                        AgregarError("Error, token inesperado se esperaba un NEWLINE (Produccion Statement)-while",token.fila);
                         SaltarError();
                         if(token.tipo != "NEWLINE")
                             token = nextToken();
@@ -888,7 +887,7 @@ AST* Parser::Statement()
                 }
                 else
                 {
-                    AgregarError("Error de : (Produccion Statement)-while",token.fila);
+                    AgregarError("Error, se esperaba un : (Produccion Statement)-while",token.fila);
                     SaltarError();
                     if(token.tipo != "NEWLINE")
                         token = nextToken();
@@ -917,7 +916,7 @@ AST* Parser::Statement()
         }
         else
         {
-            AgregarError("Error Expr (Produccion Statement)-while",token.fila);
+            AgregarError("Error Expr, error despues del token while (Produccion Statement)-while",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -965,7 +964,7 @@ AST* Parser::Statement()
                             }
                             else
                             {
-                                AgregarError("Error token inesperado se esperaba un NEWLINE",token.fila);
+                                AgregarError("Error, token inesperado se esperaba un NEWLINE (Produccion Statement)-for",token.fila);
                                 SaltarError();
                                 if(token.tipo != "NEWLINE")
                                     token = nextToken();
@@ -1009,7 +1008,7 @@ AST* Parser::Statement()
                 }
                 else
                 {
-                    AgregarError("Error Expr (Produccion Statemet)-for",token.fila);
+                    AgregarError("Error Expr, error despues del in (Produccion Statemet)-for",token.fila);
                     SaltarError();
                     if (token.tipo != "NEWLINE")
                         token = nextToken();
@@ -1065,7 +1064,7 @@ AST* Parser::Statement()
             }
             else
             {
-                AgregarError("Token inesperado se esperaba un NEWLINE (Produccion Statement)-SimpleStatement",token.fila);
+                AgregarError("Error, token inesperado se esperaba un NEWLINE (Produccion Statement)-SimpleStatement",token.fila);
                 SaltarError();
                 if (token.tipo != "NEWLINE")
                     token = nextToken();
@@ -1106,7 +1105,7 @@ AST* Parser::ElifList() //Funcion con vacio
     if (token.valor == "$" || token.valor == "if" || token.valor == "while" || token.valor == "for" || token.valor == "pass" || token.valor == "return" || token.valor == "-" || token.valor == "(" || token.tipo == "ID" || token.valor == "None" || token.valor == "True" || token.valor == "False" || token.tipo == "INTEGER" || token.tipo == "STRING" || token.valor == "["|| token.valor == "DEDENT" || token.valor == "else" || token.valor == "elif")
         return h1;
     //Colocar error
-    AgregarError("Error en la produccion ElifList",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion ElifList",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1139,7 +1138,7 @@ AST* Parser::Elif()
                     }
                     else
                     {
-                        AgregarError("Error token inesperado se esperaba un NEWLINE",token.fila);
+                        AgregarError("Error, token inesperado se esperaba un NEWLINE (Produccion Elif)",token.fila);
                         SaltarError();
                         if(token.tipo != "NEWLINE")
                             token = nextToken();
@@ -1154,7 +1153,7 @@ AST* Parser::Elif()
                 }
                 else
                 {
-                    AgregarError("Error de : (Produccion Elif) ",token.fila);
+                    AgregarError("Error, se esperaba un : (Produccion Elif) ",token.fila);
                     SaltarError();
                     if(token.tipo != "NEWLINE")
                         token = nextToken();
@@ -1183,7 +1182,7 @@ AST* Parser::Elif()
         }
         else
         {
-            AgregarError("Error Expr (Produccion Elif)",token.fila);
+            AgregarError("Error Expr, error despues del elif (Produccion Elif)",token.fila);
             SaltarError();
             if (token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1221,7 +1220,7 @@ AST* Parser::Else() //Funcion con vacios
             }
             else
             {
-                AgregarError("Error token inesperado se esperaba un NEWLINE",token.fila);
+                AgregarError("Error, token inesperado se esperaba un NEWLINE (Produccion Else)",token.fila);
                 SaltarError();
                 if(token.tipo != "NEWLINE")
                     token = nextToken();
@@ -1237,7 +1236,7 @@ AST* Parser::Else() //Funcion con vacios
         }
         else
         {
-            AgregarError("Error de : (Produccion Else)",token.fila);
+            AgregarError("Error, se esperaba un : (Produccion Else)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1254,7 +1253,7 @@ AST* Parser::Else() //Funcion con vacios
     if (token.valor == "$" || token.valor == "if" || token.valor == "while" || token.valor == "for" || token.valor == "pass" || token.valor == "return" || token.valor == "-" || token.valor == "(" || token.tipo == "ID" || token.valor == "None" || token.valor == "True" || token.valor == "False" || token.tipo == "INTEGER" || token.tipo == "STRING" || token.valor == "[" ||token.tipo == "DEDENT" || token.valor == "def" || token.valor == "elif" || token.valor == "else")
         return h1;
     //Colocar error
-    AgregarError("Error en la produccion else",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion else",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1279,7 +1278,7 @@ AST* Parser::SSTail() //Funcion con vacio
         }
         else
         {
-            AgregarError("Error, asignacion no terminada (Produccion SSTail)",token.fila);
+            AgregarError("Error en la asignacion (Produccion SSTail)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1290,7 +1289,7 @@ AST* Parser::SSTail() //Funcion con vacio
     if (token.tipo == "NEWLINE")
         return h1;
     //Colocar error
-    AgregarError("No se termino la Produccion SSTail",token.fila);
+    AgregarError("Error, token inesperado no se termino la Produccion SSTail",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1413,7 +1412,7 @@ AST* Parser::ExprPrime() //Funcion con vacio
                     }
                     else
                     {
-                        AgregarError("Error no se termino el else (Produccion Exprime)",token.fila);
+                        AgregarError("Error, token inesperado despues del else (Produccion Exprime)",token.fila);
                         SaltarError();
                         if (token.tipo != "NEWLINE")
                             token = nextToken();
@@ -1422,7 +1421,7 @@ AST* Parser::ExprPrime() //Funcion con vacio
                 }
                 else
                 {
-                    AgregarError("Error de else (Produccion ExprPrime)",token.fila);
+                    AgregarError("Error en el else (Produccion ExprPrime)",token.fila);
                     SaltarError();
                     if(token.tipo != "NEWLINE")
                         token = nextToken();
@@ -1434,7 +1433,7 @@ AST* Parser::ExprPrime() //Funcion con vacio
         }
         else
         {
-            AgregarError("Error AndExpr en la produccion ExprPrime",token.fila);
+            AgregarError("Error AndExpr, token inesperado despues del if (Produccion ExprPrime)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1445,7 +1444,7 @@ AST* Parser::ExprPrime() //Funcion con vacio
     if (token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
     //Error
-    AgregarError("Error en la produccion ExprPrime",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion ExprPrime",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1497,7 +1496,7 @@ AST* Parser::orExprPrime() //Funcion con vacio
         }
         else
         {
-            AgregarError("Error AndExpr, en la produccion OrExprPrime",token.fila);
+            AgregarError("Error AndExpr, error despues del or (Produccion OrExprPrime)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1508,7 +1507,7 @@ AST* Parser::orExprPrime() //Funcion con vacio
     if (token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
     //Error
-    AgregarError("Error en la produccion orExprPrime",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion orExprPrime",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1560,7 +1559,7 @@ AST* Parser::andExprPrime() //Funcion con vacio
         }
         else
         {
-            AgregarError("Error NotExpr, en la produccion AndExprPrime",token.fila);
+            AgregarError("Error NotExpr, error despues del and (Produccion AndExprPrime)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1572,7 +1571,7 @@ AST* Parser::andExprPrime() //Funcion con vacio
     if (token.valor == "else" || token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == "or" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
     //Error
-    AgregarError("Error en la produccion andExprPrime",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion andExprPrime",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1624,7 +1623,7 @@ AST* Parser::notExprPrime() //Funcion con vacio
         }
         else
         {
-            AgregarError("Error CompExpr, en la produccion notExprPrime",token.fila);
+            AgregarError("Error CompExpr, error despues del not (Produccion notExprPrime)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1635,7 +1634,7 @@ AST* Parser::notExprPrime() //Funcion con vacio
     if (token.valor == "and" || token.valor == "else" || token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == "or" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
     //Error
-    AgregarError("Error en la produccion notExprPrime",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion notExprPrime",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1700,7 +1699,7 @@ AST* Parser::CompExprPrime() //Funcion con vacio
     if (token.valor == "not" || token.valor == "and" || token.valor == "else" || token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == "or" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
     //Error
-    AgregarError("Error en la produccion CompExprPrime",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion CompExprPrime",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1763,7 +1762,7 @@ AST* Parser::intExprPrime() //Funcion con vacio
     if (token.valor == "not" || token.valor == "and" || token.valor == "else" || token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == "or" || token.valor == "==" || token.valor == "!=" || token.valor == "<" || token.valor == ">" || token.valor == "<=" || token.valor == ">=" || token.valor == "is" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
     //Error
-    AgregarError("Error en la produccion intExprPrime",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion intExprPrime",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1825,7 +1824,7 @@ AST* Parser::TermPrime() //Funcion con vacio
     //Follow
     if (token.valor == "+" || token.valor == "-" || token.valor == "not" || token.valor == "and" || token.valor == "else" || token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == "or" || token.valor == "==" || token.valor == "!=" || token.valor == "<" || token.valor == ">" || token.valor == "<=" || token.valor == ">=" || token.valor == "is" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
-    AgregarError("Error en la produccion TermPrime",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion TermPrime",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -1907,7 +1906,7 @@ AST* Parser::Factor()
         }
         else
         {
-            AgregarError("Error Expr, token inesperado (Produccion Factor)",token.fila);
+            AgregarError("Error Expr, token inesperado no se termino el contenido de los () (Produccion Factor)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -1977,7 +1976,7 @@ AST* Parser::NameTail() //Funcion con vacio
     if (token.valor == "*" || token.valor == "//" || token.valor == "%" || token.valor == "+" || token.valor == "-" || token.valor == "not" || token.valor == "and" || token.valor == "else" || token.valor == "if" || token.valor == ":" || token.tipo == "NEWLINE" || token.valor == "=" || token.valor == "or" || token.valor == "==" || token.valor == "!=" || token.valor == "<" || token.valor == ">" || token.valor == "<=" || token.valor == ">=" || token.valor == "is" || token.valor == ")" || token.valor == "]" || token.valor == ",")
         return h1;
     //Error
-    AgregarError("Error en la produccion NameTail",token.fila);
+    AgregarError("Error, token inesperado: "+token.valor+", en la produccion NameTail",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -2013,8 +2012,8 @@ AST* Parser::List()
             }
             else
             {
-                AgregarError("Error ] (Produccion Lista)",token.fila);
-                SaltarError(); //Not sure about this.
+                AgregarError("Error se esperaba un ] (Produccion List)",token.fila);
+                SaltarError();
                 if(token.tipo != "NEWLINE")
                     token = nextToken();
                 return 0;
@@ -2049,7 +2048,7 @@ AST* Parser::ExprList() //Funcion con vacio
         return h1;
     }
     //Colocar Error
-    AgregarError("Error en contenido de la lista (Produccion ExprList) ",token.fila);
+    AgregarError("Error en contenido de la lista (Produccion ExprList)",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
@@ -2080,7 +2079,7 @@ AST* Parser::ExprListTail() //Funcion con vacio
         }
         else
         {
-            AgregarError("Error no se termino la produccion ExprListTail",token.fila);
+            AgregarError("Error, token inesperado despues de la coma(,) (Produccion ExprListTail)",token.fila);
             SaltarError();
             if(token.tipo != "NEWLINE")
                 token = nextToken();
@@ -2093,7 +2092,7 @@ AST* Parser::ExprListTail() //Funcion con vacio
         return h1;
     }
     //Colocar error
-    AgregarError("Error, token inesperado (Produccion ExprListTail)",token.fila);
+    AgregarError("Error, token inesperado se esperaba  alguno de los siguientes simbolos (, _ ) _ ]) (Produccion ExprListTail)",token.fila);
     SaltarError();
     if(token.tipo != "NEWLINE")
         token = nextToken();
